@@ -446,23 +446,33 @@
     </div>
   </div>
 
-  <!-- ================= MODAL 5: INSTALAR APP EN ANDROID ================= -->
+  <!-- ================= MODAL 5: INSTALAR APP NATIVA EN ANDROID (.APK) ================= -->
   <div id="modal-android-install" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-box">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:15px; font-weight:700;">📲 Cómo instalar Mis Gastos IA en tu Android</h3>
+        <h3 style="font-size:15px; font-weight:700;">📲 Instalar Aplicación Nativa en tu Android (.APK)</h3>
         <button class="btn" onclick="closeAndroidInstallModal()">✕</button>
       </div>
 
-      <div style="font-size:13px; color:var(--text-primary); line-height:1.6; display:flex; flex-direction:column; gap:8px;">
-        <p>1. Abre el enlace de tu aplicación en <strong>Google Chrome</strong> desde tu teléfono Android.</p>
-        <p>2. Toca el menú de <strong>tres puntos (⋮)</strong> arriba a la derecha en Chrome.</p>
-        <p>3. Selecciona <strong>"Instalar aplicación"</strong> (o <em>"Agregar a la pantalla principal"</em>).</p>
-        <p>4. ¡Listo! Verás el ícono <strong>Mis Gastos IA</strong> en tu teléfono y se abrirá a pantalla completa como aplicación nativa.</p>
+      <div style="font-size:13px; color:var(--text-primary); line-height:1.6; display:flex; flex-direction:column; gap:10px;">
+        <p>Descarga e instala la <strong>App Nativa Android (<code>Mis-Gastos-IA.apk</code>)</strong>. Funciona 100% dentro de tu celular sin abrir ningún navegador ni depender de enlaces externos:</p>
+        <a
+          href="./Mis-Gastos-IA.apk"
+          download="Mis-Gastos-IA.apk"
+          class="btn btn-primary"
+          style="justify-content:center; width:100%; text-decoration:none; padding:11px 14px; font-size:13.5px;"
+        >
+          📥 Descargar App Nativa Android (Mis-Gastos-IA.apk)
+        </a>
+        <p style="font-size:12px; color:var(--text-secondary);">
+          1. Toca el botón azul arriba para descargar <strong>Mis-Gastos-IA.apk</strong>.<br/>
+          2. Abre el archivo descargado en tu teléfono Android y toca <strong>"Instalar"</strong>.<br/>
+          3. Si Android muestra <em>"Play Protect: app de desarrollador personal"</em>, toca <strong>"Más detalles" → "Instalar de todas formas"</strong>.
+        </p>
       </div>
 
       <div style="display:flex; justify-content:flex-end;">
-        <button class="btn btn-primary" onclick="closeAndroidInstallModal()">Entendido</button>
+        <button class="btn" onclick="closeAndroidInstallModal()">Cerrar</button>
       </div>
     </div>
   </div>

@@ -785,27 +785,30 @@ async function fetchState() {
     }
   }
 
-  // 2. Si el backend Node.js local está corriendo, sincronizar sus transacciones con localTransactions
-  //    y luego construir siempre el estado con el filtro de Período Activo (Mes Actual / Mes / Semestre / Año)
-  try {
-    const res = await fetch('./api/state?source=ALL');
-    if (res.ok) {
-      const serverData = await res.json();
-      if (Array.isArray(serverData.transactions) && serverData.transactions.length > 0) {
-        localTransactions = serverData.transactions;
+  // 2. Si el backend Node.js local está corriendo (y no estamos en APK nativo file: ni GitHub Pages), sincronizar
+  const isNativeApk = window.location.protocol === 'file:';
+  const isGithubPages = window.location.hostname.includes('github.io');
+  if (!isNativeApk && !isGithubPages) {
+    try {
+      const res = await fetch('./api/state?source=ALL');
+      if (res.ok) {
+        const serverData = await res.json();
+        if (Array.isArray(serverData.transactions) && serverData.transactions.length > 0) {
+          localTransactions = serverData.transactions;
+        }
+        if (Array.isArray(serverData.rules)) {
+          localRules = serverData.rules;
+        }
+        if (serverData.fintual?.positions) {
+          localFintualPositions = serverData.fintual.positions;
+        }
+        if (serverData.fintual?.signals) {
+          localFintualSignals = serverData.fintual.signals;
+        }
+        saveLocalState();
       }
-      if (Array.isArray(serverData.rules)) {
-        localRules = serverData.rules;
-      }
-      if (serverData.fintual?.positions) {
-        localFintualPositions = serverData.fintual.positions;
-      }
-      if (serverData.fintual?.signals) {
-        localFintualSignals = serverData.fintual.signals;
-      }
-      saveLocalState();
-    }
-  } catch {}
+    } catch {}
+  }
 
   appState = buildClientSideState();
   updateRealtimeBadge(appState.realtimeConfig?.lastSyncTimestamp);
@@ -820,11 +823,16 @@ function updateRealtimeBadge(isoTimestamp) {
   const mm = String(d.getMinutes()).padStart(2, '0');
   const ss = String(d.getSeconds()).padStart(2, '0');
   const hasCloud = Boolean(localStorage.getItem('bch_cloud_worker_url'));
-  el.textContent = hasCloud ? `Nube 24/7 Activa · ${hh}:${mm}:${ss}` : `En Vivo · ${hh}:${mm}:${ss}`;
+  const isNativeApk = window.location.protocol === 'file:';
+  el.textContent = hasCloud
+    ? `Nube 24/7 Activa · ${hh}:${mm}:${ss}`
+    : isNativeApk
+      ? `App Android Nativa · ${hh}:${mm}:${ss}`
+      : `En Vivo · ${hh}:${mm}:${ss}`;
 }
 
 function initSSE() {
-  if (!window.EventSource || window.location.hostname.includes('github.io')) {
+  if (!window.EventSource || window.location.protocol === 'file:' || window.location.hostname.includes('github.io')) {
     setInterval(() => {
       if (localStorage.getItem('bch_cloud_worker_url')) {
         fetchState();
@@ -2055,7 +2063,10 @@ function verifyAppPin() {
     const lockModal = document.getElementById('modal-pin-lock');
     if (lockModal) lockModal.classList.add('open');
   }
-  if ('serviceWorker' in navigator) {
+  if (window.location.protocol === 'file:') {
+    const installBtn = document.getElementById('btn-install-pwa');
+    if (installBtn) installBtn.style.display = 'none';
+  } else if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
   fetchState();

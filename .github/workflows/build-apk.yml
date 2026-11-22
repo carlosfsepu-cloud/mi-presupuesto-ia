@@ -3,10 +3,92 @@ on:
   push:
     branches: [ android-pwa ]
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   build:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check Android SDK
-        run: ls -la $ANDROID_HOME
+        with:
+          ref: android-pwa
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Compile and Sign Native Android APK (Mis-Gastos-IA.apk)
+        run: |
+          set -e
+          PLATFORM_JAR=$(ls -d $ANDROID_HOME/platforms/android-*/android.jar | sort -V | tail -n 1)
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          echo "Using PLATFORM_JAR=$PLATFORM_JAR"
+          echo "Using BUILD_TOOLS=$BUILD_TOOLS"
+
+          rm -rf build android-src/res android-src/assets
+          mkdir -p build/gen build/classes build/dex android-src/res/drawable android-src/assets
+
+          cp public/icon-192.png android-src/res/drawable/ic_launcher.png
+          cp public/index.html public/styles.css public/app.js public/manifest.json public/icon-192.png public/icon-512.png android-src/assets/
+
+          "$BUILD_TOOLS/aapt2" compile --dir android-src/res -o build/res.zip
+          "$BUILD_TOOLS/aapt2" link \
+            -o build/unsigned.apk \
+            -I "$PLATFORM_JAR" \
+            --manifest android-src/AndroidManifest.xml \
+            -A android-src/assets \
+            --java build/gen \
+            build/res.zip \
+            --auto-add-overlay
+
+          javac --release 8 \
+            -cp "$PLATFORM_JAR" \
+            -d build/classes \
+            build/gen/cl/finanzas/misgastosia/R.java \
+            android-src/java/cl/finanzas/misgastosia/MainActivity.java
+
+          "$BUILD_TOOLS/d8" \
+            --lib "$PLATFORM_JAR" \
+            --output build/dex \
+            build/classes/cl/finanzas/misgastosia/*.class
+
+          (cd build/dex && zip -u ../unsigned.apk classes.dex)
+          "$BUILD_TOOLS/zipalign" -f 4 build/unsigned.apk build/aligned.apk
+
+          keytool -genkeypair -v \
+            -keystore build/release.keystore \
+            -storepass android123 \
+            -keypass android123 \
+            -alias misgastos \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=MisGastosIA, OU=Personal, O=Finanzas, L=Santiago, S=RM, C=CL"
+
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks build/release.keystore \
+            --ks-pass pass:android123 \
+            --key-pass pass:android123 \
+            --out docs/Mis-Gastos-IA.apk \
+            build/aligned.apk
+
+          ls -lh docs/Mis-Gastos-IA.apk
+
+      - name: Commit APK and Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/Mis-Gastos-IA.apk
+          git commit -m "build: add signed native Android APK Mis-Gastos-IA.apk [skip ci]" || true
+          git push origin android-pwa
+          gh release delete v4.0.0 --yes --cleanup-tag 2>/dev/null || true
+          gh release create v4.0.0 docs/Mis-Gastos-IA.apk \
+            --title "Mis Gastos IA v4.0.0 - App Nativa Android (.APK)" \
+            --notes "Instalador nativo Android (Mis-Gastos-IA.apk). Funciona 100% local en tu teléfono Android sin abrir el navegador ni depender de dominios externos."
