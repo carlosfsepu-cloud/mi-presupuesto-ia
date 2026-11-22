@@ -1,0 +1,12 @@
+name: Build Native Android APK
+on:
+  push:
+    branches: [ android-pwa ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Android SDK
+        run: ls -la $ANDROID_HOME
